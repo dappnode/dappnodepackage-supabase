@@ -6,13 +6,27 @@ Codex should read this file first when continuing work on this package.
 ## Current State
 
 - Package name: `supabase.public.dappnode.eth`
-- Current test version: `0.1.6`
+- Current test version: `0.1.7`
 - Current test architecture: `linux/amd64` only
-- Latest uploaded test CID: `/ipfs/QmNdBKG3gKactGT16XfyGNxFrN5GUd6cs2ZD89kaVbt62s`
-- Latest installer URL: `http://my.dappnode/installer/public/%2Fipfs%2FQmNdBKG3gKactGT16XfyGNxFrN5GUd6cs2ZD89kaVbt62s`
-- Install worked on a clean DAppNode after old Supabase volumes were removed.
+- Latest uploaded test CID: `/ipfs/QmYQ1D2iK9Ai5QdzNNzySSN8YAREGAwLW3Wzvq3Zb8M21V`
+- Latest installer URL: `http://my.dappnode/installer/public/%2Fipfs%2FQmYQ1D2iK9Ai5QdzNNzySSN8YAREGAwLW3Wzvq3Zb8M21V`
+- User confirmed `0.1.7` works on the test DAppNode.
+- Install of `0.1.6` worked on a clean DAppNode after old Supabase volumes were removed; old partial DB volumes were the likely cause of earlier Analytics install failures.
 - Supabase Studio UI is reachable through Kong at `http://supabase.public.dappnode:8000`.
-- Current live issue: `Rest` container restarts with `exec /usr/local/bin/with-secrets.sh: no such file or directory`.
+- Rest no longer restarts after the `0.1.7` shell-free launcher fix.
+
+## Working 0.1.7 Fixes
+
+- Added `setup-wizard.yml` to ask for `POSTGRES_PASSWORD` and `DASHBOARD_PASSWORD`.
+- Fresh installs now require setup-wizard passwords; the package must not randomly generate the Studio dashboard password.
+- `POSTGRES_PASSWORD` is restricted to alphanumeric characters to keep generated DB connection strings safe.
+- Moved DAppNode Info-tab package sent values from Kong to the `secrets` service, where credentials are generated/reused.
+- Package sent values are URL-encoded and logged/retried by `assets/secrets/generate-secrets.js`.
+- Fixed the shell-less PostgREST image by adding a static Go launcher at `build/rest/with-secrets-rest/`.
+- `build/rest/Dockerfile` now builds and copies `/usr/local/bin/with-secrets-rest` instead of using `with-secrets.sh`.
+- Added a Rest healthcheck and made Storage wait for Rest to be healthy.
+- Added a longer Analytics healthcheck grace period.
+- Uploaded and tested amd64 package `0.1.7` at `/ipfs/QmYQ1D2iK9Ai5QdzNNzySSN8YAREGAwLW3Wzvq3Zb8M21V`.
 
 ## Important User Preference
 
@@ -36,6 +50,29 @@ env DOCKER_CONFIG=/tmp/docker-config-no-cred npx @dappnode/dappnodesdk build --p
 ```
 
 The provider may occasionally fail during upload with `write EPIPE`. If the build itself completed and only upload failed, retry once before changing code.
+
+On this Mac, the installed Docker CLI may not expose `docker compose` or `docker buildx` even though Docker Desktop has the plugins. A working local shim was:
+
+```sh
+#!/bin/sh
+if [ "$1" = "compose" ]; then
+  shift
+  exec /Users/lanski/.docker/cli-plugins/docker-compose "$@"
+fi
+
+if [ "$1" = "buildx" ]; then
+  shift
+  exec /Users/lanski/.docker/cli-plugins/docker-buildx "$@"
+fi
+
+exec /opt/homebrew/bin/docker "$@"
+```
+
+Put it at `/tmp/docker-compose-shim/docker`, make it executable, and run:
+
+```bash
+env PATH=/tmp/docker-compose-shim:$PATH DOCKER_CONFIG=/tmp/docker-config-no-cred npx @dappnode/dappnodesdk build --provider http://172.33.0.10:5001 --timeout 180min --verbose
+```
 
 Useful validation:
 
@@ -65,7 +102,7 @@ Be careful with `down --volumes`: only use it for local throwaway debug projects
   - `functions` for edge functions
   - `snippets` for Studio snippets
   - `deno-cache` for Edge Runtime cache
-- DAppNode install rollback may leave enough state around to confuse later tests. When debugging first install behavior, test with all old Supabase volumes removed.
+- DAppNode install rollback may leave enough state around to confuse later tests. When debugging first install behavior, test with all old Supabase volumes removed. This was confirmed: removing old Supabase volumes allowed the package to install.
 - Do not rely on bind mounts from the upstream Supabase compose; DAppNode packages need config baked into images or stored in package volumes.
 - Non-core DAppNode packages should not depend on mounting the Docker socket. This package disables the optional upstream Vector log collector for that reason.
 - DAppNode package sent values are typically sent from inside the package with:
@@ -122,7 +159,7 @@ Most services wrap their upstream image with `with-secrets.sh`, which waits for 
 
 This works only in images that include `/bin/sh`.
 
-## Known Bugs For Next Version
+## Resolved Bugs In 0.1.7
 
 ### 1. Rest Restarts Because PostgREST Image Has No Shell
 
@@ -163,6 +200,12 @@ fails with:
 exec: "/bin/sh": stat /bin/sh: no such file or directory
 ```
 
+Resolution:
+
+- Added a static Go launcher at `build/rest/with-secrets-rest/main.go`.
+- `build/rest/Dockerfile` builds this launcher in a Go builder stage and copies it into the shell-less PostgREST image.
+- The launcher waits for `/run/supabase-config/supabase.env`, parses required values, sets PostgREST env vars, and `exec`s `postgrest`.
+
 ### 2. Dashboard Password Must Come From Setup Wizard
 
 Current behavior:
@@ -170,13 +213,13 @@ Current behavior:
 - Fresh installs generate `DASHBOARD_PASSWORD` randomly in `generate-secrets.js`.
 - This is bad UX because the user cannot know it if Info tab publishing fails.
 
-Required next behavior:
+Implemented behavior:
 
-- Add `setup-wizard.yml`.
-- Ask user for `DASHBOARD_PASSWORD`.
-- Ask user for `POSTGRES_PASSWORD`.
-- Persist these values into `supabase.env`.
-- Do not randomly generate dashboard password when wizard value is provided.
+- Added `setup-wizard.yml`.
+- Asks user for `DASHBOARD_PASSWORD`.
+- Asks user for `POSTGRES_PASSWORD`.
+- Persists these values into `supabase.env`.
+- Fresh installs fail if wizard passwords are missing.
 
 Password guidance:
 
@@ -191,12 +234,12 @@ Current behavior:
 - The Info tab did not show them in `0.1.6`.
 - The post is silent and raw query strings are not URL-encoded.
 
-Required next behavior:
+Implemented behavior:
 
-- Move value publishing to `secrets` service after `generate-secrets.js` generates or reuses `supabase.env`.
-- Use JavaScript `encodeURIComponent` for keys and values.
-- Log success or failure for each published key so DAppNode logs show what happened.
-- Keep retry behavior because DAppNode UI/API may not be immediately reachable.
+- Moved value publishing to `secrets` service after `generate-secrets.js` generates or reuses `supabase.env`.
+- Uses JavaScript `URL.searchParams`, which URL-encodes keys and values.
+- Logs success/failure for each published key so DAppNode logs show what happened.
+- Keeps retry behavior because DAppNode UI/API may not be immediately reachable.
 
 Values to publish:
 
@@ -212,11 +255,13 @@ Values to publish:
 
 `analytics` is Logflare and can take time on DAppNode. Current healthcheck has no `start_period`.
 
-Even though the latest install problem was old DB volumes, add a startup grace period and/or more retries so install does not fail on slow hardware.
+Implemented in `0.1.7` with a longer start period and more retries.
 
 ### 5. Rest Needs A Healthcheck
 
 Rest currently has no container healthcheck. Add a healthcheck that proves PostgREST is reachable.
+
+Implemented in `0.1.7` using `/usr/local/bin/with-secrets-rest healthcheck`.
 
 Also add an end-to-end smoke test through Kong:
 
@@ -229,7 +274,7 @@ curl -i -sS \
 
 Expected result for a working empty DB is `HTTP/1.1 200 OK`.
 
-## Planned Shell-Free Rest Fix
+## Shell-Free Rest Launcher Design
 
 Rest is PostgREST. It needs these values from `supabase.env`:
 
@@ -258,14 +303,14 @@ PGRST_DB_ANON_ROLE=anon
 PGRST_DB_USE_LEGACY_GUCS=false
 ```
 
-Implement a tiny static launcher binary for Rest instead of a shell script:
+Implemented a tiny static launcher binary for Rest instead of a shell script:
 
 1. Wait until `/run/supabase-config/supabase.env` exists.
 2. Parse lines like `export KEY='value'`.
 3. Set PostgREST env vars listed above.
 4. Execute PostgREST directly, replacing itself.
 
-Preferred language: Go.
+Language: Go.
 
 Example build approach:
 
@@ -282,25 +327,37 @@ CMD ["postgrest"]
 
 Do not use `/bin/sh` in the Rest image.
 
-For first implementation, keep scope tight and use the binary only for Rest. Later, consider replacing `with-secrets.sh` for all services with one shared binary launcher to avoid base-image surprises.
+The implementation is intentionally scoped to Rest because it is the known shell-less image. Later, consider replacing `with-secrets.sh` for all services with one shared binary launcher to avoid base-image surprises.
 
-## Setup Wizard Plan
+## Setup Wizard Status
 
-Add `setup-wizard.yml` at repo root.
+`setup-wizard.yml` exists at repo root.
 
 Minimum fields:
 
 - `DASHBOARD_PASSWORD`
 - `POSTGRES_PASSWORD`
 
-Then update `secrets` service in `docker-compose.yml` to receive the wizard-injected env vars, and update `generate-secrets.js` to prefer incoming env values over generated defaults.
+The `secrets` service receives wizard-injected env vars, and `generate-secrets.js` requires them for fresh installs.
 
 Important:
 
 - Setup wizard cannot fetch or display generated values before install.
 - Generated values that users need after install should be displayed through package sent values in the Info tab.
 
-## Suggested Implementation Order
+## Next Suggested Work
+
+1. Commit and push any follow-up fixes before rebuilding.
+2. Test credential display in the DAppNode Info tab after `0.1.7`.
+3. Test API smoke through Kong with anon and service-role keys:
+   - `/auth/v1/health`
+   - `/rest/v1/`
+   - Studio login with setup-wizard dashboard password
+4. If `0.1.7` remains stable, prepare a multi-arch build only after confirming target architectures and user approval.
+5. Consider removing the obsolete top-level Compose `version` field to silence DAppManager warnings.
+6. Consider a future shared binary secrets launcher for all services, but do not expand scope unless a base-image shell issue appears elsewhere.
+
+## Historical 0.1.7 Implementation Order
 
 1. Add `setup-wizard.yml` for dashboard and Postgres passwords.
 2. Update `docker-compose.yml` `secrets.environment` to pass wizard values into the secrets generator.

@@ -68,25 +68,4 @@ awk '{
 # Remove empty key-auth credentials (unconfigured opaque keys)
 sed -i '/^[[:space:]]*- key:[[:space:]]*$/d' "$KONG_DECLARATIVE_CONFIG"
 
-post_package_value() {
-    local key="$1"
-    local data="$2"
-    local url="http://my.dappnode/data-send?key=${key}&data=${data}"
-
-    if command -v curl >/dev/null 2>&1; then
-        curl --connect-timeout 5 --max-time 10 --silent --retry 3 --retry-delay 0 \
-            -X POST "$url" >/dev/null 2>&1 || true
-    elif command -v wget >/dev/null 2>&1; then
-        wget -qO- --timeout=10 --tries=3 --method=POST "$url" >/dev/null 2>&1 || true
-    fi
-}
-
-post_package_value "Supabase%20URL" "http://supabase.public.dappnode:8000"
-post_package_value "Supabase%20Anon%20Key" "$SUPABASE_ANON_KEY"
-post_package_value "Supabase%20Service%20Role%20Key%20(server%20only)" "$SUPABASE_SERVICE_KEY"
-post_package_value "Supabase%20Dashboard%20Username" "$DASHBOARD_USERNAME"
-post_package_value "Supabase%20Dashboard%20Password" "$DASHBOARD_PASSWORD"
-post_package_value "Supabase%20S3%20Access%20Key%20ID" "$S3_PROTOCOL_ACCESS_KEY_ID"
-post_package_value "Supabase%20S3%20Secret%20Access%20Key" "$S3_PROTOCOL_ACCESS_KEY_SECRET"
-
 exec /entrypoint.sh kong docker-start

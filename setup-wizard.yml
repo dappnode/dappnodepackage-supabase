@@ -1,0 +1,28 @@
+version: "2"
+fields:
+  - id: postgres_password
+    target:
+      type: environment
+      name: POSTGRES_PASSWORD
+      service: secrets
+    title: Postgres password
+    description: >-
+      Password for the Postgres, supabase_admin, and internal Supabase database
+      roles. Use only letters and numbers to keep generated connection strings
+      safe.
+    required: true
+    pattern: ^[A-Za-z0-9]{16,64}$
+    patternErrorMessage: "Use 16 to 64 letters and numbers only."
+
+  - id: dashboard_password
+    target:
+      type: environment
+      name: DASHBOARD_PASSWORD
+      service: secrets
+    title: Supabase Studio password
+    description: >-
+      Password for the Supabase Studio basic-auth login at
+      http://supabase.public.dappnode:8000. Use only letters and numbers.
+    required: true
+    pattern: ^[A-Za-z0-9]{8,64}$
+    patternErrorMessage: "Use 8 to 64 letters and numbers only."

@@ -5,10 +5,12 @@ services:
     build:
       context: .
       dockerfile: build/secrets/Dockerfile
-    image: secrets.supabase.public.dappnode.eth:0.1.6
+    image: secrets.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     environment:
-      SUPABASE_SECRETS_KEEP_ALIVE: "true"
+      - SUPABASE_SECRETS_KEEP_ALIVE=true
+      - POSTGRES_PASSWORD
+      - DASHBOARD_PASSWORD
     volumes:
       - config:/run/supabase-config
       - db-data:/var/lib/postgresql/data:ro
@@ -17,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: build/studio/Dockerfile
-    image: studio.supabase.public.dappnode.eth:0.1.6
+    image: studio.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     healthcheck:
       test:
@@ -43,7 +45,7 @@ services:
     build:
       context: .
       dockerfile: build/kong/Dockerfile
-    image: kong.supabase.public.dappnode.eth:0.1.6
+    image: kong.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "kong", "health"]
@@ -64,7 +66,7 @@ services:
     build:
       context: .
       dockerfile: build/auth/Dockerfile
-    image: auth.supabase.public.dappnode.eth:0.1.6
+    image: auth.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     healthcheck:
       test:
@@ -90,8 +92,14 @@ services:
     build:
       context: .
       dockerfile: build/rest/Dockerfile
-    image: rest.supabase.public.dappnode.eth:0.1.6
+    image: rest.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/with-secrets-rest", "healthcheck"]
+      timeout: 5s
+      interval: 10s
+      retries: 10
+      start_period: 20s
     depends_on:
       db:
         condition: service_healthy
@@ -103,7 +111,7 @@ services:
     build:
       context: .
       dockerfile: build/realtime/Dockerfile
-    image: realtime.supabase.public.dappnode.eth:0.1.6
+    image: realtime.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     depends_on:
       db:
@@ -126,13 +134,13 @@ services:
     build:
       context: .
       dockerfile: build/storage/Dockerfile
-    image: storage.supabase.public.dappnode.eth:0.1.6
+    image: storage.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
       rest:
-        condition: service_started
+        condition: service_healthy
       imgproxy:
         condition: service_started
     healthcheck:
@@ -158,7 +166,7 @@ services:
     build:
       context: .
       dockerfile: build/imgproxy/Dockerfile
-    image: imgproxy.supabase.public.dappnode.eth:0.1.6
+    image: imgproxy.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     volumes:
       - storage:/var/lib/storage
@@ -172,7 +180,7 @@ services:
     build:
       context: .
       dockerfile: build/meta/Dockerfile
-    image: meta.supabase.public.dappnode.eth:0.1.6
+    image: meta.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     depends_on:
       db:
@@ -185,7 +193,7 @@ services:
     build:
       context: .
       dockerfile: build/functions/Dockerfile
-    image: functions.supabase.public.dappnode.eth:0.1.6
+    image: functions.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     volumes:
       - config:/run/supabase-config:ro
@@ -205,13 +213,14 @@ services:
     build:
       context: .
       dockerfile: build/analytics/Dockerfile
-    image: analytics.supabase.public.dappnode.eth:0.1.6
+    image: analytics.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "http://localhost:4000/health"]
       timeout: 5s
       interval: 5s
-      retries: 10
+      retries: 30
+      start_period: 60s
     depends_on:
       db:
         condition: service_healthy
@@ -223,7 +232,7 @@ services:
     build:
       context: .
       dockerfile: build/db/Dockerfile
-    image: db.supabase.public.dappnode.eth:0.1.6
+    image: db.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     volumes:
       - config:/run/supabase-config:ro
@@ -247,7 +256,7 @@ services:
     build:
       context: .
       dockerfile: build/pooler/Dockerfile
-    image: supavisor.supabase.public.dappnode.eth:0.1.6
+    image: supavisor.supabase.public.dappnode.eth:0.1.7
     restart: unless-stopped
     healthcheck:
       test:
