@@ -1,0 +1,286 @@
+version: "3.5"
+
+services:
+  secrets:
+    build:
+      context: .
+      dockerfile: build/secrets/Dockerfile
+    image: secrets.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    environment:
+      SUPABASE_SECRETS_KEEP_ALIVE: "true"
+    volumes:
+      - config:/run/supabase-config
+      - db-data:/var/lib/postgresql/data:ro
+
+  studio:
+    build:
+      context: .
+      dockerfile: build/studio/Dockerfile
+    image: studio.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"
+        ]
+      timeout: 10s
+      interval: 5s
+      retries: 3
+    depends_on:
+      analytics:
+        condition: service_healthy
+    volumes:
+      - config:/run/supabase-config:ro
+      - snippets:/app/snippets
+      - functions:/app/edge-functions
+    command: ["node", "apps/studio/server.js"]
+
+  kong:
+    build:
+      context: .
+      dockerfile: build/kong/Dockerfile
+    image: kong.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      studio:
+        condition: service_healthy
+    ports:
+      - "8000:8000/tcp"
+      - "8443:8443/tcp"
+    volumes:
+      - config:/run/supabase-config:ro
+    entrypoint: /usr/local/bin/kong-entrypoint.sh
+
+  auth:
+    build:
+      context: .
+      dockerfile: build/auth/Dockerfile
+    image: auth.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9999/health"
+        ]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - config:/run/supabase-config:ro
+    command: ["auth"]
+
+  rest:
+    build:
+      context: .
+      dockerfile: build/rest/Dockerfile
+    image: rest.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - config:/run/supabase-config:ro
+    command: ["postgrest"]
+
+  realtime:
+    build:
+      context: .
+      dockerfile: build/realtime/Dockerfile
+    image: realtime.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          ". /run/supabase-config/supabase.env && curl -sSfL --head -o /dev/null -H \"Authorization: Bearer $${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health"
+        ]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - config:/run/supabase-config:ro
+    command: ["/app/bin/server"]
+
+  storage:
+    build:
+      context: .
+      dockerfile: build/storage/Dockerfile
+    image: storage.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+      imgproxy:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://storage:5000/status"
+        ]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - config:/run/supabase-config:ro
+      - storage:/var/lib/storage
+    command: ["node", "dist/start/server.js"]
+
+  imgproxy:
+    build:
+      context: .
+      dockerfile: build/imgproxy/Dockerfile
+    image: imgproxy.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    volumes:
+      - storage:/var/lib/storage
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+
+  meta:
+    build:
+      context: .
+      dockerfile: build/meta/Dockerfile
+    image: meta.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - config:/run/supabase-config:ro
+    command: ["node", "dist/server/server.js"]
+
+  functions:
+    build:
+      context: .
+      dockerfile: build/functions/Dockerfile
+    image: functions.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    volumes:
+      - config:/run/supabase-config:ro
+      - functions:/home/deno/functions
+      - deno-cache:/root/.cache/deno
+    depends_on:
+      kong:
+        condition: service_healthy
+    command:
+      [
+        "start",
+        "--main-service",
+        "/home/deno/functions/main"
+      ]
+
+  analytics:
+    build:
+      context: .
+      dockerfile: build/analytics/Dockerfile
+    image: analytics.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:4000/health"]
+      timeout: 5s
+      interval: 5s
+      retries: 10
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - config:/run/supabase-config:ro
+    command: ["/bin/sh", "/opt/app/rel/logflare/bin/run.sh"]
+
+  db:
+    build:
+      context: .
+      dockerfile: build/db/Dockerfile
+    image: db.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    volumes:
+      - config:/run/supabase-config:ro
+      - db-data:/var/lib/postgresql/data
+      - db-config:/etc/postgresql-custom
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command:
+      [
+        "postgres",
+        "-c",
+        "config_file=/etc/postgresql/postgresql.conf",
+        "-c",
+        "log_min_messages=fatal"
+      ]
+
+  supavisor:
+    build:
+      context: .
+      dockerfile: build/pooler/Dockerfile
+    image: supavisor.supabase.public.dappnode.eth:0.1.6
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-sSfL",
+          "--head",
+          "-o",
+          "/dev/null",
+          "http://127.0.0.1:4000/api/health"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - config:/run/supabase-config:ro
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "/app/bin/migrate && /app/bin/supavisor eval \"$$(cat /etc/pooler/pooler.exs)\" && /app/bin/server"
+      ]
+
+volumes:
+  config: {}
+  snippets: {}
+  functions: {}
+  storage: {}
+  deno-cache: {}
+  db-data: {}
+  db-config: {}

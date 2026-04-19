@@ -1,0 +1,64 @@
+{
+  "name": "supabase.public.dappnode.eth",
+  "version": "0.1.6",
+  "shortDescription": "Official self-hosted Supabase for DAppNode",
+  "description": "Supabase is an open source Postgres development platform with Auth, REST, GraphQL, Realtime, Storage, Edge Functions, and Studio. This DAppNode package wraps Supabase's official self-hosted Docker stack and adapts it to DAppNode's package constraints.\n\nPackage entrypoint:\n- Studio and API gateway: `http://supabase.public.dappnode:8000`\n\nImportant notes:\n- The upstream self-hosting setup relies on bind mounts for config files and Docker log collection. This package bakes the required config into wrapper images and disables the optional Vector log collector because non-core DAppNode packages cannot mount the Docker socket.\n- On first launch, the package generates and persists Supabase secrets in a package volume. User-facing credentials are shown in the package Info tab under Key and Package Sent Values.",
+  "type": "service",
+  "architectures": ["linux/amd64"],
+  "mainService": "kong",
+  "author": "lanski <noreply@local.invalid> (https://github.com/lanski)",
+  "categories": ["Developer tools", "Storage"],
+  "keywords": [
+    "Supabase",
+    "Postgres",
+    "Database",
+    "Auth",
+    "Storage",
+    "Edge Functions"
+  ],
+  "links": {
+    "homepage": "https://supabase.com/",
+    "ui": "http://supabase.public.dappnode:8000",
+    "api": "http://supabase.public.dappnode:8000",
+    "docs": "https://supabase.com/docs/guides/hosting/docker",
+    "github": "https://github.com/supabase/supabase/tree/master/docker"
+  },
+  "backup": [
+    {
+      "name": "database",
+      "path": "/var/lib/postgresql/data",
+      "service": "db"
+    },
+    {
+      "name": "configuration",
+      "path": "/run/supabase-config",
+      "service": "secrets"
+    },
+    {
+      "name": "storage",
+      "path": "/var/lib/storage",
+      "service": "storage"
+    },
+    {
+      "name": "functions",
+      "path": "/home/deno/functions",
+      "service": "functions"
+    },
+    {
+      "name": "snippets",
+      "path": "/app/snippets",
+      "service": "studio"
+    }
+  ],
+  "warnings": {
+    "onInstall": "Supabase credentials are generated on first launch and persisted in the package configuration volume. The anon key, service-role key, dashboard credentials, and S3 credentials are shown in the package Info tab under Key and Package Sent Values.",
+    "onReset": "Resetting this package removes your generated Supabase secrets, database, object storage, edge functions, and SQL snippets.",
+    "onRemove": "Removing this package also removes Supabase data and generated credentials unless you back up the package volumes first."
+  },
+  "changelog": "Generates Supabase secrets on first launch, persists them in a package volume, derives JWT API keys consistently, and publishes user-facing credentials to DAppNode's Info tab.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supabase/supabase.git"
+  },
+  "license": "Apache-2.0"
+}
