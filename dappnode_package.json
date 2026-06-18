@@ -6,7 +6,7 @@
   "type": "service",
   "architectures": ["linux/amd64"],
   "mainService": "kong",
-  "author": "lanski <noreply@local.invalid> (https://github.com/lanski)",
+  "author": "lanski <Pol-Lanski> (https://github.com/pol-lanski)",
   "categories": ["Developer tools", "Storage"],
   "keywords": [
     "Supabase",
