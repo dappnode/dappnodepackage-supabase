@@ -1,0 +1,14 @@
+name: Bump upstream version
+
+on:
+  schedule:
+    - cron: "00 */4 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  bump-upstream:
+    uses: dappnode/workflows/.github/workflows/bump-upstream.yml@master
+    secrets: inherit
