@@ -1,29 +1,8 @@
 {
-  "name": "supabase.public.dappnode.eth",
-  "version": "0.1.7",
-  "upstreamRepo": "supabase/supabase",
-  "shortDescription": "Official self-hosted Supabase for DAppNode",
-  "description": "Supabase is an open source Postgres development platform with Auth, REST, GraphQL, Realtime, Storage, Edge Functions, and Studio. This DAppNode package wraps Supabase's official self-hosted Docker stack and adapts it to DAppNode's package constraints.\n\nPackage entrypoint:\n- Studio and API gateway: `http://supabase.public.dappnode:8000`\n\nImportant notes:\n- The upstream self-hosting setup relies on bind mounts for config files and Docker log collection. This package bakes the required config into wrapper images and disables the optional Vector log collector because non-core DAppNode packages cannot mount the Docker socket.\n- On first launch, the package uses setup-wizard passwords plus generated Supabase secrets and persists them in a package volume. User-facing credentials are shown in the package Info tab under Key and Package Sent Values.",
-  "type": "service",
-  "architectures": ["linux/amd64"],
-  "mainService": "kong",
-  "author": "lanski <Pol-Lanski> (https://github.com/pol-lanski)",
-  "categories": ["Developer tools", "Storage"],
-  "keywords": [
-    "Supabase",
-    "Postgres",
-    "Database",
-    "Auth",
-    "Storage",
-    "Edge Functions"
+  "architectures": [
+    "linux/amd64"
   ],
-  "links": {
-    "homepage": "https://supabase.com/",
-    "ui": "http://supabase.public.dappnode:8000",
-    "api": "http://supabase.public.dappnode:8000",
-    "docs": "https://supabase.com/docs/guides/hosting/docker",
-    "github": "https://github.com/supabase/supabase/tree/master/docker"
-  },
+  "author": "lanski <Pol-Lanski> (https://github.com/pol-lanski)",
   "backup": [
     {
       "name": "database",
@@ -51,15 +30,42 @@
       "service": "studio"
     }
   ],
-  "warnings": {
-    "onInstall": "Choose strong setup-wizard passwords for Postgres and Supabase Studio. Other Supabase credentials are generated on first launch and persisted in the package configuration volume. The anon key, service-role key, dashboard credentials, and S3 credentials are shown in the package Info tab under Key and Package Sent Values.",
-    "onReset": "Resetting this package removes your generated Supabase secrets, database, object storage, edge functions, and SQL snippets.",
-    "onRemove": "Removing this package also removes Supabase data and generated credentials unless you back up the package volumes first."
-  },
+  "categories": [
+    "Developer tools",
+    "Storage"
+  ],
   "changelog": "Adds setup-wizard Postgres and Studio passwords, fixes the shell-less PostgREST image with a static launcher, publishes credentials from the secrets service, and hardens Rest and Analytics healthchecks.",
+  "description": "Supabase is an open source Postgres development platform with Auth, REST, GraphQL, Realtime, Storage, Edge Functions, and Studio. This DAppNode package wraps Supabase's official self-hosted Docker stack and adapts it to DAppNode's package constraints.\n\nPackage entrypoint:\n- Studio and API gateway: `http://supabase.public.dappnode:8000`\n\nImportant notes:\n- The upstream self-hosting setup relies on bind mounts for config files and Docker log collection. This package bakes the required config into wrapper images and disables the optional Vector log collector because non-core DAppNode packages cannot mount the Docker socket.\n- On first launch, the package uses setup-wizard passwords plus generated Supabase secrets and persists them in a package volume. User-facing credentials are shown in the package Info tab under Key and Package Sent Values.",
+  "keywords": [
+    "Supabase",
+    "Postgres",
+    "Database",
+    "Auth",
+    "Storage",
+    "Edge Functions"
+  ],
+  "license": "Apache-2.0",
+  "links": {
+    "api": "http://supabase.public.dappnode:8000",
+    "docs": "https://supabase.com/docs/guides/hosting/docker",
+    "github": "https://github.com/supabase/supabase/tree/master/docker",
+    "homepage": "https://supabase.com/",
+    "ui": "http://supabase.public.dappnode:8000"
+  },
+  "mainService": "kong",
+  "name": "supabase.public.dappnode.eth",
   "repository": {
     "type": "git",
     "url": "https://github.com/supabase/supabase.git"
   },
-  "license": "Apache-2.0"
+  "shortDescription": "Official self-hosted Supabase for DAppNode",
+  "type": "service",
+  "upstreamRepo": "supabase/supabase",
+  "upstreamVersion": "v1.26.05",
+  "version": "0.1.8",
+  "warnings": {
+    "onInstall": "Choose strong setup-wizard passwords for Postgres and Supabase Studio. Other Supabase credentials are generated on first launch and persisted in the package configuration volume. The anon key, service-role key, dashboard credentials, and S3 credentials are shown in the package Info tab under Key and Package Sent Values.",
+    "onRemove": "Removing this package also removes Supabase data and generated credentials unless you back up the package volumes first.",
+    "onReset": "Resetting this package removes your generated Supabase secrets, database, object storage, edge functions, and SQL snippets."
+  }
 }
