@@ -8,7 +8,86 @@ on:
     branches:
       - "main"
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   bump-upstream:
-    uses: dappnode/workflows/.github/workflows/bump-upstream.yml@master
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve latest upstream release
+        id: upstream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          manifest_path = "dappnode_package.json"
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              manifest = json.load(f)
+
+          upstream_repo = manifest["upstreamRepo"]
+          current_version = manifest.get("upstreamVersion", "")
+
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{upstream_repo}/releases/latest",
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "dappnodepackage-supabase-upstream-check",
+              },
+          )
+          with urllib.request.urlopen(req) as response:
+              latest_release = json.load(response)
+
+          latest_version = latest_release["tag_name"]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"upstream_repo={upstream_repo}\n")
+              out.write(f"current_version={current_version}\n")
+              out.write(f"latest_version={latest_version}\n")
+          PY
+
+      - name: Update upstreamVersion in manifest
+        if: steps.upstream.outputs.current_version != steps.upstream.outputs.latest_version
+        run: |
+          python3 <<'PY'
+          import json
+
+          manifest_path = "dappnode_package.json"
+          latest_version = "${{ steps.upstream.outputs.latest_version }}"
+
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              manifest = json.load(f)
+
+          manifest["upstreamVersion"] = latest_version
+
+          with open(manifest_path, "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+              f.write("\n")
+          PY
+
+      - name: Create pull request
+        if: steps.upstream.outputs.current_version != steps.upstream.outputs.latest_version
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ci/bump-upstream-version
+          delete-branch: true
+          commit-message: "Bump upstreamVersion to ${{ steps.upstream.outputs.latest_version }}"
+          title: "Bump upstreamVersion to ${{ steps.upstream.outputs.latest_version }}"
+          body: |
+            This automated PR updates the package metadata to track the latest upstream Supabase release.
+
+            - Upstream repo: `${{ steps.upstream.outputs.upstream_repo }}`
+            - Previous upstreamVersion: `${{ steps.upstream.outputs.current_version }}`
+            - New upstreamVersion: `${{ steps.upstream.outputs.latest_version }}`
+
+            Note: this workflow updates `upstreamVersion` metadata only. The pinned service image versions in this package should still be reviewed manually before publishing a new package release.
