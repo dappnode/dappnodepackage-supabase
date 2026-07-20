@@ -1,4 +1,5 @@
-FROM supabase/realtime:v2.76.5
+ARG REALTIME_VERSION
+FROM supabase/realtime:${REALTIME_VERSION}
 
 COPY --chmod=755 assets/secrets/with-secrets.sh /usr/local/bin/with-secrets.sh
 

@@ -1,4 +1,5 @@
-FROM supabase/gotrue:v2.186.0
+ARG AUTH_VERSION
+FROM supabase/gotrue:${AUTH_VERSION}
 
 COPY --chmod=755 assets/secrets/with-secrets.sh /usr/local/bin/with-secrets.sh
 

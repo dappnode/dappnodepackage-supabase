@@ -1,4 +1,5 @@
-FROM supabase/edge-runtime:v1.71.2
+ARG EDGE_RUNTIME_VERSION
+FROM supabase/edge-runtime:${EDGE_RUNTIME_VERSION}
 
 COPY assets/functions/ /home/deno/functions/
 COPY --chmod=755 assets/secrets/with-secrets.sh /usr/local/bin/with-secrets.sh

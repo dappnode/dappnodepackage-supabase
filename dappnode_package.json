@@ -1,8 +1,70 @@
 {
   "name": "supabase.public.dappnode.eth",
   "version": "0.1.7",
-  "upstreamVersion": "v1.26.05",
-  "upstreamRepo": "supabase/supabase",
+  "upstream": [
+    {
+      "repo": "supabase/supabase",
+      "version": "v1.26.05",
+      "arg": "SUPABASE_VERSION",
+      "provider": "github"
+    },
+    {
+      "repo": "Kong/kong",
+      "version": "3.9.1",
+      "arg": "KONG_VERSION"
+    },
+    {
+      "repo": "supabase/auth",
+      "version": "v2.186.0",
+      "arg": "AUTH_VERSION"
+    },
+    {
+      "repo": "PostgREST/postgrest",
+      "version": "v14.8",
+      "arg": "POSTGREST_VERSION"
+    },
+    {
+      "repo": "supabase/realtime",
+      "version": "v2.76.5",
+      "arg": "REALTIME_VERSION"
+    },
+    {
+      "repo": "supabase/storage",
+      "version": "v1.48.26",
+      "arg": "STORAGE_VERSION"
+    },
+    {
+      "repo": "imgproxy/imgproxy",
+      "version": "v3.30.1",
+      "arg": "IMGPROXY_VERSION"
+    },
+    {
+      "repo": "supabase/postgres-meta",
+      "version": "v0.96.3",
+      "arg": "POSTGRES_META_VERSION"
+    },
+    {
+      "repo": "supabase/edge-runtime",
+      "version": "v1.71.2",
+      "arg": "EDGE_RUNTIME_VERSION"
+    },
+    {
+      "repo": "Logflare/logflare",
+      "version": "1.36.1",
+      "arg": "LOGFLARE_VERSION"
+    },
+    {
+      "repo": "supabase/postgres",
+      "version": "15.8.1.085",
+      "arg": "POSTGRES_VERSION"
+    },
+    {
+      "repo": "supabase/supavisor",
+      "version": "2.7.4",
+      "arg": "SUPAVISOR_VERSION",
+      "provider": "docker_tags"
+    }
+  ],
   "shortDescription": "Official self-hosted Supabase for DAppNode",
   "description": "Supabase is an open source Postgres development platform with Auth, REST, GraphQL, Realtime, Storage, Edge Functions, and Studio. This DAppNode package wraps Supabase's official self-hosted Docker stack and adapts it to DAppNode's package constraints.\n\nPackage entrypoint:\n- Studio and API gateway: `http://supabase.public.dappnode:8000`\n\nImportant notes:\n- The upstream self-hosting setup relies on bind mounts for config files and Docker log collection. This package bakes the required config into wrapper images and disables the optional Vector log collector because non-core DAppNode packages cannot mount the Docker socket.\n- On first launch, the package uses setup-wizard passwords plus generated Supabase secrets and persists them in a package volume. User-facing credentials are shown in the package Info tab under Key and Package Sent Values.",
   "type": "service",

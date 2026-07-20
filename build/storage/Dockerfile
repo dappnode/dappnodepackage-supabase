@@ -1,4 +1,5 @@
-FROM supabase/storage-api:v1.48.26
+ARG STORAGE_VERSION
+FROM supabase/storage-api:${STORAGE_VERSION}
 
 COPY --chmod=755 assets/secrets/with-secrets.sh /usr/local/bin/with-secrets.sh
 
