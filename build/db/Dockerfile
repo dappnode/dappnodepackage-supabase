@@ -1,4 +1,5 @@
-FROM supabase/postgres:15.8.1.085
+ARG POSTGRES_VERSION
+FROM supabase/postgres:${POSTGRES_VERSION}
 
 RUN mkdir -p /docker-entrypoint-initdb.d/migrations /docker-entrypoint-initdb.d/init-scripts
 

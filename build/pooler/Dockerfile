@@ -1,4 +1,5 @@
-FROM supabase/supavisor:2.7.4
+ARG SUPAVISOR_VERSION
+FROM supabase/supavisor:${SUPAVISOR_VERSION}
 
 RUN mkdir -p /etc/pooler
 

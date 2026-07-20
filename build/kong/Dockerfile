@@ -1,4 +1,5 @@
-FROM kong/kong:3.9.1
+ARG KONG_VERSION
+FROM kong/kong:${KONG_VERSION}
 
 COPY --chmod=644 assets/api/kong.yml /usr/local/kong/kong.template.yml
 COPY --chmod=755 assets/api/kong-entrypoint.sh /usr/local/bin/kong-entrypoint.sh

@@ -1,4 +1,5 @@
-FROM supabase/logflare:1.36.1
+ARG LOGFLARE_VERSION
+FROM supabase/logflare:${LOGFLARE_VERSION}
 
 COPY --chmod=755 assets/secrets/with-secrets.sh /usr/local/bin/with-secrets.sh
 

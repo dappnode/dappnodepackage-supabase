@@ -1,3 +1,5 @@
+ARG POSTGREST_VERSION
+
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS rest-launcher-builder
 
 ARG TARGETOS
@@ -8,7 +10,7 @@ COPY build/rest/with-secrets-rest/go.mod build/rest/with-secrets-rest/main.go ./
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     go build -trimpath -ldflags="-s -w" -o /with-secrets-rest .
 
-FROM postgrest/postgrest:v14.8
+FROM postgrest/postgrest:${POSTGREST_VERSION}
 
 COPY --from=rest-launcher-builder /with-secrets-rest /usr/local/bin/with-secrets-rest
 

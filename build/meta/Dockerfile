@@ -1,4 +1,5 @@
-FROM supabase/postgres-meta:v0.96.3
+ARG POSTGRES_META_VERSION
+FROM supabase/postgres-meta:${POSTGRES_META_VERSION}
 
 COPY --chmod=755 assets/secrets/with-secrets.sh /usr/local/bin/with-secrets.sh
 
