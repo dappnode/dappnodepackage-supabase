@@ -70,7 +70,7 @@
   "changelog": "Adds setup-wizard Postgres and Studio passwords, fixes the shell-less PostgREST image with a static launcher, publishes credentials from the secrets service, and hardens Rest and Analytics healthchecks.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/supabase/supabase.git"
+    "url": "https://github.com/dappnode/dappnodepackage-supabase.git"
   },
   "license": "Apache-2.0"
 }
