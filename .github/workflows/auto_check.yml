@@ -32,8 +32,9 @@ jobs:
           with open(manifest_path, "r", encoding="utf-8") as f:
               manifest = json.load(f)
 
-          upstream_repo = manifest["upstreamRepo"]
-          current_version = manifest.get("upstreamVersion", "")
+          upstream = manifest["upstream"][0]
+          upstream_repo = upstream["repo"]
+          current_version = upstream["version"]
 
           req = urllib.request.Request(
               f"https://api.github.com/repos/{upstream_repo}/releases/latest",
@@ -55,7 +56,7 @@ jobs:
               out.write(f"latest_version={latest_version}\n")
           PY
 
-      - name: Update upstreamVersion in manifest
+      - name: Update upstream version in manifest
         if: steps.upstream.outputs.current_version != steps.upstream.outputs.latest_version
         run: |
           python3 <<'PY'
@@ -67,7 +68,7 @@ jobs:
           with open(manifest_path, "r", encoding="utf-8") as f:
               manifest = json.load(f)
 
-          manifest["upstreamVersion"] = latest_version
+          manifest["upstream"][0]["version"] = latest_version
 
           with open(manifest_path, "w", encoding="utf-8") as f:
               json.dump(manifest, f, indent=2)
@@ -81,13 +82,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ci/bump-upstream-version
           delete-branch: true
-          commit-message: "Bump upstreamVersion to ${{ steps.upstream.outputs.latest_version }}"
-          title: "Bump upstreamVersion to ${{ steps.upstream.outputs.latest_version }}"
+          commit-message: "Bump upstream version to ${{ steps.upstream.outputs.latest_version }}"
+          title: "Bump upstream version to ${{ steps.upstream.outputs.latest_version }}"
           body: |
             This automated PR updates the package metadata to track the latest upstream Supabase release.
 
             - Upstream repo: `${{ steps.upstream.outputs.upstream_repo }}`
-            - Previous upstreamVersion: `${{ steps.upstream.outputs.current_version }}`
-            - New upstreamVersion: `${{ steps.upstream.outputs.latest_version }}`
+            - Previous upstream version: `${{ steps.upstream.outputs.current_version }}`
+            - New upstream version: `${{ steps.upstream.outputs.latest_version }}`
 
-            Note: this workflow updates `upstreamVersion` metadata only. The pinned service image versions in this package should still be reviewed manually before publishing a new package release.
+            Note: this workflow updates `upstream[0].version` metadata only. The pinned service image versions in this package should still be reviewed manually before publishing a new package release.
